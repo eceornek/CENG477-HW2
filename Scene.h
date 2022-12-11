@@ -38,6 +38,7 @@ public:
 	Scene(const char *xmlPath);
 
 	void initializeImage(Camera* camera);
+	Matrix4 modeling_transformation(Mesh& mesh);
 	void forwardRenderingPipeline(Camera* camera);
 	int makeBetweenZeroAnd255(double value);
 	void writeImageToPPMFile(Camera* camera);

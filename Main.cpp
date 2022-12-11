@@ -4,6 +4,7 @@
 #include "Scene.h"
 #include "Matrix4.h"
 #include "Helpers.h"
+#include "math.h"
 
 using namespace std;
 
@@ -11,6 +12,12 @@ Scene *scene;
 
 int main(int argc, char *argv[])
 {
+
+    Matrix4 M_cam;
+    Matrix4 M_per;
+    Matrix4 M_ortho;
+    double M_vp[3][4];
+
     if (argc != 2)
     {
         cout << "Please run the rasterizer as:" << endl
@@ -19,6 +26,7 @@ int main(int argc, char *argv[])
     }
     else
     {
+
         const char *xmlPath = argv[1];
 
         scene = new Scene(xmlPath);

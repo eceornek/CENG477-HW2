@@ -25,24 +25,24 @@ using namespace std;
 	You may define helper functions.
 */
 
-Matrix4 camera_transformation(Camera &camera)
+Matrix4 camera_transformation(Camera *camera)
 {
 	// Function to move camera to the origin
 	Matrix4 M_cam;
-	M_cam.val[0][0] = camera.u.x;
-	M_cam.val[0][1] = camera.u.y;
-	M_cam.val[0][2] = camera.u.z;
-	M_cam.val[0][3] = -1 * (camera.u.x * camera.pos.x + camera.u.y * camera.pos.y + camera.u.z * camera.pos.z);
+	M_cam.val[0][0] = camera->u.x;
+	M_cam.val[0][1] = camera->u.y;
+	M_cam.val[0][2] = camera->u.z;
+	M_cam.val[0][3] = -1 * (camera->u.x * camera->pos.x + camera->u.y * camera->pos.y + camera->u.z * camera->pos.z);
 
-	M_cam.val[1][0] = camera.v.x;
-	M_cam.val[1][1] = camera.v.y;
-	M_cam.val[1][2] = camera.v.z;
-	M_cam.val[1][3] = -1 * (camera.v.x * camera.pos.x + camera.v.y * camera.pos.y + camera.v.z * camera.pos.z);
+	M_cam.val[1][0] = camera->v.x;
+	M_cam.val[1][1] = camera->v.y;
+	M_cam.val[1][2] = camera->v.z;
+	M_cam.val[1][3] = -1 * (camera->v.x * camera->pos.x + camera->v.y * camera->pos.y + camera->v.z * camera->pos.z);
 
-	M_cam.val[2][0] = camera.w.x;
-	M_cam.val[2][1] = camera.w.y;
-	M_cam.val[2][2] = camera.w.z;
-	M_cam.val[2][3] = -1 * (camera.w.x * camera.pos.x + camera.w.y * camera.pos.y + camera.w.z * camera.pos.z);
+	M_cam.val[2][0] = camera->w.x;
+	M_cam.val[2][1] = camera->w.y;
+	M_cam.val[2][2] = camera->w.z;
+	M_cam.val[2][3] = -1 * (camera->w.x * camera->pos.x + camera->w.y * camera->pos.y + camera->w.z * camera->pos.z);
 
 	M_cam.val[3][0] = 0.0;
 	M_cam.val[3][1] = 0.0;
@@ -51,23 +51,23 @@ Matrix4 camera_transformation(Camera &camera)
 	return M_cam;
 }
 
-Matrix4 orthographic_projection(Camera &camera)
+Matrix4 orthographic_projection(Camera *camera)
 {
 	Matrix4 M_ortho;
-	M_ortho.val[0][0] = (2.0) / (camera.right - camera.left);
+	M_ortho.val[0][0] = (2.0) / (camera->right - camera->left);
 	M_ortho.val[0][1] = 0.0;
 	M_ortho.val[0][2] = 0.0;
-	M_ortho.val[0][3] = (-1.0) * (camera.right + camera.left) / (camera.right - camera.left);
+	M_ortho.val[0][3] = (-1.0) * (camera->right + camera->left) / (camera->right - camera->left);
 
 	M_ortho.val[1][0] = 0.0;
-	M_ortho.val[1][1] = (2.0) / (camera.top - camera.bottom);
+	M_ortho.val[1][1] = (2.0) / (camera->top - camera->bottom);
 	M_ortho.val[1][2] = 0.0;
-	M_ortho.val[1][3] = (-1.0) * (camera.top + camera.bottom) / (camera.top - camera.bottom);
+	M_ortho.val[1][3] = (-1.0) * (camera->top + camera->bottom) / (camera->top - camera->bottom);
 
 	M_ortho.val[2][0] = 0.0;
 	M_ortho.val[2][1] = 0.0;
-	M_ortho.val[2][2] = (-2.0) / (camera.far - camera.near);
-	M_ortho.val[2][3] = (-1.0) * (camera.far + camera.near) / (camera.far - camera.near);
+	M_ortho.val[2][2] = (-2.0) / (camera->far - camera->near);
+	M_ortho.val[2][3] = (-1.0) * (camera->far + camera->near) / (camera->far - camera->near);
 
 	M_ortho.val[3][0] = 0.0;
 	M_ortho.val[3][1] = 0.0;
@@ -76,7 +76,7 @@ Matrix4 orthographic_projection(Camera &camera)
 	return M_ortho;
 }
 
-Matrix4 perspective_projection(Camera &camera)
+Matrix4 perspective_projection(Camera *camera)
 {
 	Matrix4 M_per;
 	// Matrix4 M_ortho;
@@ -89,20 +89,20 @@ Matrix4 perspective_projection(Camera &camera)
 
 	// Matrix4 result = multiplyMatrixWithMatrix(M_ortho, M_p2o);
 	// return result;
-	M_per.val[0][0] = (2.0)*camera.near/(camera.right - camera.left);
+	M_per.val[0][0] = (2.0) * camera->near / (camera->right - camera->left);
 	M_per.val[0][1] = 0.0;
-	M_per.val[0][2] = (camera.right + camera.left)/(camera.right - camera.left);
+	M_per.val[0][2] = (camera->right + camera->left) / (camera->right - camera->left);
 	M_per.val[0][3] = 0.0;
 
 	M_per.val[1][0] = 0.0;
-	M_per.val[1][1] = (2.0)*camera.near / (camera.top - camera.bottom);
-	M_per.val[1][2] = (camera.top + camera.bottom)/(camera.top - camera.bottom);
+	M_per.val[1][1] = (2.0) * camera->near / (camera->top - camera->bottom);
+	M_per.val[1][2] = (camera->top + camera->bottom) / (camera->top - camera->bottom);
 	M_per.val[1][3] = 0.0;
 
 	M_per.val[2][0] = 0.0;
 	M_per.val[2][1] = 0.0;
-	M_per.val[2][2] = (-1.0)*(camera.far + camera.near) / (camera.far - camera.near);
-	M_per.val[2][3] = (-2.0)*camera.far*camera.near / (camera.far - camera.near);
+	M_per.val[2][2] = (-1.0) * (camera->far + camera->near) / (camera->far - camera->near);
+	M_per.val[2][3] = (-2.0) * camera->far * camera->near / (camera->far - camera->near);
 
 	M_per.val[3][0] = 0.0;
 	M_per.val[3][1] = 0.0;
@@ -111,17 +111,17 @@ Matrix4 perspective_projection(Camera &camera)
 	return M_per;
 }
 
-void viewport_transformation(Camera &camera, double M_vp[3][4])
+void viewport_transformation(Camera *camera, double M_vp[3][4])
 {
-	M_vp[0][0] = camera.horRes / 2.0;
+	M_vp[0][0] = camera->horRes / 2.0;
 	M_vp[0][1] = 0.0;
 	M_vp[0][2] = 0.0;
-	M_vp[0][3] = (camera.horRes - 1.0) / 2.0;
+	M_vp[0][3] = (camera->horRes - 1.0) / 2.0;
 
 	M_vp[1][0] = 0.0;
-	M_vp[1][1] = camera.verRes / 2.0;
+	M_vp[1][1] = camera->verRes / 2.0;
 	M_vp[1][2] = 0.0;
-	M_vp[1][3] = (camera.verRes - 1.0) / 2.0;
+	M_vp[1][3] = (camera->verRes - 1.0) / 2.0;
 
 	M_vp[2][0] = 0.0;
 	M_vp[2][1] = 0.0;
@@ -286,6 +286,22 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 {
 	// TODO: Implement this function.
 	
+	Matrix4 M_cam = camera_transformation(camera);
+	Matrix4 M_per;
+	Matrix4 M_ortho;
+	// need to check for projection type
+	// 1 for perspective, 0 for orthographic
+	if (camera->projectionType)
+	{
+		M_per = perspective_projection(camera);
+	}
+	else
+	{
+		M_ortho = orthographic_projection(camera);
+	}
+	double M_vp[3][4];
+	viewport_transformation(camera, M_vp);
+
 	for (int i = 0; i < meshes.size(); i++)
 	{
 		Mesh &mesh = *(meshes[i]);
@@ -294,8 +310,8 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		Matrix4 M_model = modeling_transformation(mesh);
 		for (int j = 0; j < mesh.numberOfTriangles; j++)
 		{
-			//for each vertex of a triangle
-			Vec4 v1; 
+			// for each vertex of a triangle
+			Vec4 v1;
 			Vec4 v2;
 			Vec4 v3;
 			v1.x = vertices[mesh.triangles[j].vertexIds[0]]->x;
@@ -312,8 +328,6 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 			v3.y = vertices[mesh.triangles[j].vertexIds[2]]->y;
 			v3.z = vertices[mesh.triangles[j].vertexIds[2]]->z;
 			v3.t = 1.0;
-
-
 		}
 	}
 }
@@ -334,7 +348,7 @@ Scene::Scene(const char *xmlPath)
 	// read background color
 	pElement = pRoot->FirstChildElement("BackgroundColor");
 	str = pElement->GetText();
-	sscanf(str, "%lf %lf %lf", &backgroundColor.r, &backgroundColor.g, &backgroundColor.b);
+	sscanf(str, "%lf %lf %lf", &(backgroundColor.r), &(backgroundColor.g), &(backgroundColor.b));
 
 	// read culling
 	pElement = pRoot->FirstChildElement("Culling");
@@ -376,15 +390,15 @@ Scene::Scene(const char *xmlPath)
 
 		camElement = pCamera->FirstChildElement("Position");
 		str = camElement->GetText();
-		sscanf(str, "%lf %lf %lf", &cam->pos.x, &cam->pos.y, &cam->pos.z);
+		sscanf(str, "%lf %lf %lf", &(cam->pos.x), &(cam->pos.y), &(cam->pos.z));
 
 		camElement = pCamera->FirstChildElement("Gaze");
 		str = camElement->GetText();
-		sscanf(str, "%lf %lf %lf", &cam->gaze.x, &cam->gaze.y, &cam->gaze.z);
+		sscanf(str, "%lf %lf %lf", &(cam->gaze.x), &(cam->gaze.y), &(cam->gaze.z));
 
 		camElement = pCamera->FirstChildElement("Up");
 		str = camElement->GetText();
-		sscanf(str, "%lf %lf %lf", &cam->v.x, &cam->v.y, &cam->v.z);
+		sscanf(str, "%lf %lf %lf", &(cam->v.x), &(cam->v.y), &(cam->v.z));
 
 		cam->gaze = normalizeVec3(cam->gaze);
 		cam->u = crossProductVec3(cam->gaze, cam->v);

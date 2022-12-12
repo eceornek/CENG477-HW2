@@ -182,6 +182,8 @@ Matrix4 multiplyMatrixWithMatrix(Matrix4 m1, Matrix4 m2)
     return result;
 }
 
+
+
 /*
  * Multiply matrix m (Matrix4) with vector v (vec4) and store the result in vector r (vec4).
  */
@@ -202,3 +204,26 @@ Vec4 multiplyMatrixWithVec4(Matrix4 m, Vec4 v)
 
     return Vec4(values[0], values[1], values[2], values[3], v.colorId);
 }
+
+// ----------------------------------- OWN HELPERS START----------------------------------------------
+/*
+ * Multiply matrices m1 (3x4) and m2 (4x4) and return the result matrix (3x4).
+ */
+void multiply3_4MatrixWith4_4Matrix(double result[][4], double m1[][4], Matrix4 m2)
+{
+    double total;
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            total = 0;
+            for (int k = 0; k < 4; k++)
+            {
+                total += m1[i][k] * m2.val[k][j];
+            }
+
+            result[i][j] = total;
+        }
+    }
+}
+// ----------------------------------- OWN HELPERS END----------------------------------------------

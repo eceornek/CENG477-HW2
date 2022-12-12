@@ -284,23 +284,35 @@ Matrix4 Scene::modeling_transformation(Mesh &mesh)
 }
 void Scene::forwardRenderingPipeline(Camera *camera)
 {
-	// TODO: Implement this function.
-	
+
+	// It is enough to calculate these matrix for every camera not every mesh. 
+
+	Matrix4 M_view_1;
+	// camera transformation
 	Matrix4 M_cam = camera_transformation(camera);
-	Matrix4 M_per;
-	Matrix4 M_ortho;
+
+	// viewport transformation
+	double M_vp[3][4];
+	viewport_transformation(camera, M_vp); 
+
+	// projection transformation
+	Matrix4 M_proj; 
 	// need to check for projection type
 	// 1 for perspective, 0 for orthographic
 	if (camera->projectionType)
 	{
-		M_per = perspective_projection(camera);
+		M_proj = perspective_projection(camera);
 	}
 	else
 	{
-		M_ortho = orthographic_projection(camera);
+		M_proj = orthographic_projection(camera);
 	}
-	double M_vp[3][4];
-	viewport_transformation(camera, M_vp);
+	// create viewing transformation matrix without viewport transformation:
+	M_view_mid = multiplyMatrixWithMatrix(M_proj, M_cam)
+	// create final viewing transformation matrix:
+	double M_view_res[3][4];
+	multiply3_4MatrixWith4_4Matrix(M_view_res, M_vp, M_view_1);
+
 
 	for (int i = 0; i < meshes.size(); i++)
 	{
@@ -308,6 +320,10 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 
 		// calculate modeling transformation matrix for each mesh
 		Matrix4 M_model = modeling_transformation(mesh);
+		// merge modeling transformation with viewing transformation to create result matrix to be applied on vertices of triangles.
+		double M_result[3][4] 
+		multiply3_4MatrixWith4_4Matrix(M_result, M_view_res, M_model);
+
 		for (int j = 0; j < mesh.numberOfTriangles; j++)
 		{
 			// for each vertex of a triangle

@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "Scene.h"
+#include "Matrix4.h"
 #include "Camera.h"
 #include "Color.h"
 #include "Mesh.h"
@@ -260,43 +261,261 @@ Matrix4 rotation_transformation(Rotation rotation)
 	return rotation_matrix;
 }
 
-Matrix4 Scene::modeling_transformation(Mesh &mesh)
+Matrix4 Scene::modeling_transformation(Mesh *mesh)
 {
 	Matrix4 M_result = getIdentityMatrix();
-	for (int i = 0; i < mesh.numberOfTransformations; i++)
+	for (int i = 0; i < mesh->numberOfTransformations; i++)
 	{
-		int transformation_id = mesh.transformationIds[i];
-		char transformation_type = mesh.transformationTypes[i];
-		switch (transformation_type)
+		int transformation_id = mesh->transformationIds[i];
+		char transformation_type = mesh->transformationTypes[i];
+		if (transformation_type == 'r')
 		{
-		case 'r':
-			Matrix4 M_r = rotation_transformation(*rotations[transformation_id]);
+			Matrix4 M_r = rotation_transformation(*rotations[transformation_id - 1]);
 			M_result = multiplyMatrixWithMatrix(M_r, M_result);
-		case 's':
-			Matrix4 M_s = scaling_transformation(*scalings[transformation_id]);
+		}
+		else if (transformation_type == 's')
+		{
+			Matrix4 M_s = scaling_transformation(*scalings[transformation_id - 1]);
 			M_result = multiplyMatrixWithMatrix(M_s, M_result);
-		case 't':
-			Matrix4 M_t = translation_transformation(*translations[transformation_id]);
+		}
+		else if (transformation_type == 't')
+		{
+			Matrix4 M_t = translation_transformation(*translations[transformation_id - 1]);
 			M_result = multiplyMatrixWithMatrix(M_t, M_result);
 		}
 	}
 	return M_result;
 }
+
+void Scene::midpoint_algorithm(Vec3 v0, Vec3 v1)
+{
+	Color color;
+	Color dc;
+	int step;
+
+	Vec3 v0_new;
+	v0_new.x = v0.x;
+	v0_new.y = v0.y;
+	v0_new.colorId = v0.colorId;
+	Vec3 v1_new;
+	v1_new.x = v1.x;
+	v1_new.y = v1.y;
+	v1_new.colorId = v1.colorId;
+
+	bool slope_control = abs(v1.y - v0.y) > abs(v1.x - v0.x);
+	if (slope_control)
+	{
+		v0_new.x = v0.y;
+		v0_new.y = v0.x;
+		v1_new.x = v1.y;
+		v1_new.y = v1.x;
+	}
+	if (v1_new.x < v0_new.x)
+	{
+		double temp_x = v0_new.x;
+		double temp_y = v0_new.y;
+		v0_new.x = v1_new.x;
+		v0_new.y = v1_new.y;
+		v1_new.x = temp_x;
+		v1_new.y = temp_y;
+		v1_new.colorId = v0.colorId;
+		v0_new.colorId = v1.colorId;
+	}
+	if (v0_new.y < v1_new.y)
+	{
+		step = 1;
+	}
+	else
+	{
+		step = -1;
+	}
+
+	int x1_minus_x0 = v1_new.x - v0_new.x;
+	int y1_minus_y0 = abs(v1_new.y - v0_new.y);
+	int y0_minus_y1 = (-1) * y1_minus_y0;
+	int y = v0_new.y;
+	float d = y0_minus_y1 + 0.5 * (x1_minus_x0);
+
+	// c=c0
+	color.r = colorsOfVertices[v0_new.colorId - 1]->r;
+	color.b = colorsOfVertices[v0_new.colorId - 1]->b;
+	color.g = colorsOfVertices[v0_new.colorId - 1]->g;
+
+	// dc = (c1-c0) / (x1-x0)
+	dc.r = (colorsOfVertices[v1_new.colorId - 1]->r - color.r) / x1_minus_x0;
+	dc.b = (colorsOfVertices[v1_new.colorId - 1]->b - color.b) / x1_minus_x0;
+	dc.g = (colorsOfVertices[v1_new.colorId - 1]->g - color.g) / x1_minus_x0;
+
+	for (int x = (int)v0_new.x; x <= (int)v1_new.x; x++)
+	{
+		// round(c)
+		color.r = makeBetweenZeroAnd255(color.r);
+		color.b = makeBetweenZeroAnd255(color.b);
+		color.g = makeBetweenZeroAnd255(color.g);
+		if (slope_control)
+		{
+			image[y][x] = color;
+		}
+		else
+		{
+			image[x][y] = color;
+		}
+		if (d < 0)
+		{
+			y = y + step;
+			d += (y0_minus_y1 + x1_minus_x0);
+		}
+		else
+		{
+			d += y0_minus_y1;
+		}
+		color.r += dc.r;
+		color.b += dc.b;
+		color.g += dc.g;
+	}
+}
+
+bool Scene::is_visible(double den, double num, double &te, double &tl)
+{
+	double t;
+	if (den > 0)
+	{
+		t = num / den;
+		if (t > tl)
+			return false;
+		if (t > te)
+			te = t;
+	}
+	else if (den < 0)
+	{
+		t = num / den;
+		if (t < te)
+			return false;
+		if (t < tl)
+			tl = t;
+	}
+	else if (num > 0)
+	{
+		return false;
+	}
+	return true;
+}
+
+void Scene::line_rasterization(Vec3 v0, Vec3 v1, Camera *camera)
+{
+	// std::cout << "line\n";
+
+	double te = 0;
+	double tl = 1;
+	bool visible = false;
+	int xmin = 0;
+	int ymin = 0;
+	int xmax = camera->horRes - 1;
+	int ymax = camera->verRes - 1;
+	v0.x = (int)v0.x;
+	v1.x = (int)v1.x;
+	v0.y = (int)v0.y;
+	v1.y = (int)v1.y;
+
+	int x0 = v0.x;
+	int y0 = v0.y;
+	int x1 = v1.x;
+	int y1 = v1.y;
+
+	double dx = x1 - x0;
+	double dy = y1 - y0;
+
+	if (is_visible(dx, (xmin - x0), te, tl))
+	{
+		if (is_visible(-1 * dx, (x0 - xmax), te, tl))
+		{
+			if (is_visible(dy, (ymin - y0), te, tl))
+			{
+				if (is_visible(-1 * dy, (y0 - ymax), te, tl))
+				{
+					visible = true;
+					if (tl < 1)
+					{
+						v1.x = v0.x + dx * tl;
+						v1.y = v0.y + dy * tl;
+					}
+					if (te > 0)
+					{
+						v0.x = v0.x + dx * te;
+						v0.y = v0.y + dy * te;
+					}
+					midpoint_algorithm(v0, v1);
+				}
+			}
+		}
+	}
+}
+
+void Scene::triangle_rasterization(Vec3 v1, Vec3 v2, Vec3 v3, Camera *camera)
+{
+	int x_min = min_3(v1.x, v2.x, v3.x);
+	int y_min = min_3(v1.y, v2.y, v3.y);
+	int x_max = max_3(v1.x, v2.x, v3.x);
+	int y_max = max_3(v1.y, v2.y, v3.y);
+	// std::cout << "triangle\n";
+
+	int x0 = v1.x;
+	int y0 = v1.y;
+	int x1 = v2.x;
+	int y1 = v2.y;
+	int x2 = v3.x;
+	int y2 = v3.y;
+	Color lastColor;
+	Color *color0 = colorsOfVertices[v1.colorId - 1];
+	Color *color1 = colorsOfVertices[v2.colorId - 1];
+	Color *color2 = colorsOfVertices[v3.colorId - 1];
+
+	for (int y = y_min; y <= y_max; y++)
+	{
+		for (int x = x_min; x <= x_max; x++)
+		{
+			if (x < camera->horRes && x >= 0 && y < camera->verRes && y >= 0)
+			{
+
+				double alpha = line_equation(x2, y2, x1, y1, x, y) / line_equation(x2, y2, x1, y1, x0, y0);
+				double beta = line_equation(x0, y0, x2, y2, x, y) / line_equation(x0, y0, x2, y2, x1, y1);
+				double gamma = line_equation(x1, y1, x0, y0, x, y) / line_equation(x1, y1, x0, y0, x2, y2);
+
+				if (alpha >= 0 && beta >= 0 && gamma >= 0)
+				{
+					lastColor.r = makeBetweenZeroAnd255(color0->r * alpha + color1->r * beta + color2->r * gamma);
+					lastColor.b = makeBetweenZeroAnd255(color0->b * alpha + color1->b * beta + color2->b * gamma);
+					lastColor.g = makeBetweenZeroAnd255(color0->g * alpha + color1->g * beta + color2->g * gamma);
+					image[x][y] = lastColor;
+				}
+			}
+		}
+	}
+}
+
 void Scene::forwardRenderingPipeline(Camera *camera)
 {
 
-	// It is enough to calculate these matrix for every camera not every mesh. 
+	// It is enough to calculate these matrix for every camera not every mesh.
 
-	Matrix4 M_view_1;
 	// camera transformation
 	Matrix4 M_cam = camera_transformation(camera);
 
 	// viewport transformation
 	double M_vp[3][4];
-	viewport_transformation(camera, M_vp); 
+	viewport_transformation(camera, M_vp);
+	// for (int i = 0; i < 3; i++)
+	// {
+	// 	for (int j = 0; j < 4; j++)
+	// 	{
+	// 		std::cout
+	// 			<< M_vp[i][j] << ",";
+	// 	}
+	// 	std::cout << "\n";
+	// }
 
 	// projection transformation
-	Matrix4 M_proj; 
+	Matrix4 M_proj;
 	// need to check for projection type
 	// 1 for perspective, 0 for orthographic
 	if (camera->projectionType)
@@ -308,42 +527,138 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		M_proj = orthographic_projection(camera);
 	}
 	// create viewing transformation matrix without viewport transformation:
-	M_view_mid = multiplyMatrixWithMatrix(M_proj, M_cam)
+	Matrix4 M_proj_and_cam = multiplyMatrixWithMatrix(M_proj, M_cam);
 	// create final viewing transformation matrix:
-	double M_view_res[3][4];
-	multiply3_4MatrixWith4_4Matrix(M_view_res, M_vp, M_view_1);
-
+	// double M_view_res[3][4];
+	// multiply3_4MatrixWith4_4Matrix(M_view_res, M_vp, M_view_mid);
 
 	for (int i = 0; i < meshes.size(); i++)
 	{
-		Mesh &mesh = *(meshes[i]);
+		Mesh *mesh = (meshes[i]);
 
 		// calculate modeling transformation matrix for each mesh
 		Matrix4 M_model = modeling_transformation(mesh);
 		// merge modeling transformation with viewing transformation to create result matrix to be applied on vertices of triangles.
-		double M_result[3][4] 
-		multiply3_4MatrixWith4_4Matrix(M_result, M_view_res, M_model);
+		// double M_result[3][4];
+		// multiply3_4MatrixWith4_4Matrix(M_result, M_view_res, M_model);
 
-		for (int j = 0; j < mesh.numberOfTriangles; j++)
+		Matrix4 M_proj_cam_model = multiplyMatrixWithMatrix(M_proj_and_cam, M_model);
+
+		for (int j = 0; j < mesh->numberOfTriangles; j++)
 		{
 			// for each vertex of a triangle
 			Vec4 v1;
 			Vec4 v2;
 			Vec4 v3;
-			v1.x = vertices[mesh.triangles[j].vertexIds[0]]->x;
-			v1.y = vertices[mesh.triangles[j].vertexIds[0]]->y;
-			v1.z = vertices[mesh.triangles[j].vertexIds[0]]->z;
+			v1.x = vertices[mesh->triangles[j].vertexIds[0] - 1]->x;
+			v1.y = vertices[mesh->triangles[j].vertexIds[0] - 1]->y;
+			v1.z = vertices[mesh->triangles[j].vertexIds[0] - 1]->z;
 			v1.t = 1.0;
+			v1.colorId = vertices[mesh->triangles[j].vertexIds[0] - 1]->colorId;
 
-			v2.x = vertices[mesh.triangles[j].vertexIds[1]]->x;
-			v2.y = vertices[mesh.triangles[j].vertexIds[1]]->y;
-			v2.z = vertices[mesh.triangles[j].vertexIds[1]]->z;
+			v2.x = vertices[mesh->triangles[j].vertexIds[1] - 1]->x;
+			v2.y = vertices[mesh->triangles[j].vertexIds[1] - 1]->y;
+			v2.z = vertices[mesh->triangles[j].vertexIds[1] - 1]->z;
 			v2.t = 1.0;
+			v2.colorId = vertices[mesh->triangles[j].vertexIds[1] - 1]->colorId;
 
-			v3.x = vertices[mesh.triangles[j].vertexIds[2]]->x;
-			v3.y = vertices[mesh.triangles[j].vertexIds[2]]->y;
-			v3.z = vertices[mesh.triangles[j].vertexIds[2]]->z;
+			v3.x = vertices[mesh->triangles[j].vertexIds[2] - 1]->x;
+			v3.y = vertices[mesh->triangles[j].vertexIds[2] - 1]->y;
+			v3.z = vertices[mesh->triangles[j].vertexIds[2] - 1]->z;
 			v3.t = 1.0;
+			v3.colorId = vertices[mesh->triangles[j].vertexIds[2] - 1]->colorId;
+
+			Vec4 v1_transformed = multiplyMatrixWithVec4(M_proj_cam_model, v1);
+			Vec4 v2_transformed = multiplyMatrixWithVec4(M_proj_cam_model, v2);
+			Vec4 v3_transformed = multiplyMatrixWithVec4(M_proj_cam_model, v3);
+
+			// std::cout << "first:\n"
+			// 		  << v1_transformed << "\n";
+
+			// std::cout << "second:\n"
+			// 		  << v2_transformed << "\n";
+
+			// std::cout << "third:\n"
+			// 		  << v3_transformed << "\n";
+
+			if (v1_transformed.t != 0)
+			{
+				v1_transformed.x = v1_transformed.x / v1_transformed.t;
+				v1_transformed.y = v1_transformed.y / v1_transformed.t;
+				v1_transformed.z = v1_transformed.z / v1_transformed.t;
+				v1_transformed.t = 1;
+			}
+			if (v2_transformed.t != 0)
+			{
+				v2_transformed.x = v2_transformed.x / v2_transformed.t;
+				v2_transformed.y = v2_transformed.y / v2_transformed.t;
+				v2_transformed.z = v2_transformed.z / v2_transformed.t;
+				v2_transformed.t = 1;
+			}
+			if (v3_transformed.t != 0)
+			{
+				v3_transformed.x = v3_transformed.x / v3_transformed.t;
+				v3_transformed.y = v3_transformed.y / v3_transformed.t;
+				v3_transformed.z = v3_transformed.z / v3_transformed.t;
+				v3_transformed.t = 1;
+			}
+
+			// std::cout << "first:\n"
+			// 		  << v1_transformed << "\n";
+
+			// std::cout << "second:\n"
+			// 		  << v2_transformed << "\n";
+
+			// std::cout << "third:\n"
+			// 		  << v3_transformed << "\n";
+
+			Vec3 v1_transformed_vp;
+			Vec3 v2_transformed_vp;
+			Vec3 v3_transformed_vp;
+
+			multiply_3x4_MatrixWithVec4(v1_transformed_vp, M_vp, v1_transformed);
+			multiply_3x4_MatrixWithVec4(v2_transformed_vp, M_vp, v2_transformed);
+			multiply_3x4_MatrixWithVec4(v3_transformed_vp, M_vp, v3_transformed);
+
+			// std::cout << "first:\n"
+			// 		  << v1_transformed_vp << "\n";
+
+			// std::cout << "second:\n"
+			// 		  << v2_transformed_vp << "\n";
+
+			// std::cout << "third:\n"
+			// 		  << v3_transformed_vp << "\n";
+
+			if (cullingEnabled)
+			{
+				Vec3 edge1 = subtractVec3(v2_transformed_vp, v1_transformed_vp);
+				Vec3 edge2 = subtractVec3(v3_transformed_vp, v1_transformed_vp);
+				Vec3 normal = crossProductVec3(edge2, edge1);
+				normal = normalizeVec3(normal);
+				Vec3 viewing_vector = v1_transformed_vp;
+				viewing_vector = normalizeVec3(viewing_vector);
+				if (dotProductVec3(viewing_vector, normal) > 0)
+				{
+					continue;
+				}
+			}
+
+			v1_transformed_vp.colorId = v1.colorId;
+			v2_transformed_vp.colorId = v2.colorId;
+			v3_transformed_vp.colorId = v3.colorId;
+
+			// Solid
+			if (mesh->type)
+			{
+				triangle_rasterization(v1_transformed_vp, v2_transformed_vp, v3_transformed_vp, camera);
+			}
+			// Wireframe
+			else
+			{
+				line_rasterization(v1_transformed_vp, v2_transformed_vp, camera);
+				line_rasterization(v2_transformed_vp, v3_transformed_vp, camera);
+				line_rasterization(v3_transformed_vp, v1_transformed_vp, camera);
+			}
 		}
 	}
 }

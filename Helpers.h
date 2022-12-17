@@ -74,4 +74,10 @@ Matrix4 multiplyMatrixWithMatrix(Matrix4 m1, Matrix4 m2);
  */
 Vec4 multiplyMatrixWithVec4(Matrix4 m, Vec4 v);
 
+void multiply_3x4_MatrixWithVec4(Vec3 &result, double m[][4], Vec4 coordinates);
+
+int min_3(double x, double y, double z);
+int max_3(double x, double y, double z);
+double line_equation(int x0,int y0, int x1,int y1,int x,int y);
+
 #endif

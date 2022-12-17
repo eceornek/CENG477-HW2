@@ -134,7 +134,7 @@ int areEqualVec3(Vec3 a, Vec3 b)
 
 /*
  * Returns an identity matrix (values on the diagonal are 1, others are 0).
-*/
+ */
 Matrix4 getIdentityMatrix()
 {
     Matrix4 result;
@@ -182,8 +182,6 @@ Matrix4 multiplyMatrixWithMatrix(Matrix4 m1, Matrix4 m2)
     return result;
 }
 
-
-
 /*
  * Multiply matrix m (Matrix4) with vector v (vec4) and store the result in vector r (vec4).
  */
@@ -209,7 +207,7 @@ Vec4 multiplyMatrixWithVec4(Matrix4 m, Vec4 v)
 /*
  * Multiply matrices m1 (3x4) and m2 (4x4) and return the result matrix (3x4).
  */
-void multiply3_4MatrixWith4_4Matrix(double result[][4], double m1[][4], Matrix4 m2)
+void multiply3_4MatrixWith4_4Matrix(double result[3][4], double m1[3][4], Matrix4 m2)
 {
     double total;
     for (int i = 0; i < 3; i++)
@@ -226,4 +224,29 @@ void multiply3_4MatrixWith4_4Matrix(double result[][4], double m1[][4], Matrix4 
         }
     }
 }
+
+void multiply_3x4_MatrixWithVec4(Vec3 &result, double m[][4], Vec4 coordinates)
+{
+    result.x += m[0][0] * coordinates.x + m[0][1] * coordinates.y + m[0][2] * coordinates.z + m[0][3] * coordinates.t;
+    result.y += m[1][0] * coordinates.x + m[1][1] * coordinates.y + m[1][2] * coordinates.z + m[1][3] * coordinates.t;
+    result.z += m[2][0] * coordinates.x + m[2][1] * coordinates.y + m[2][2] * coordinates.z + m[2][3] * coordinates.t;
+}
+
+int min_3(double x, double y, double z)
+{
+    int min_of_three = min(x, min(y, z));
+    return min_of_three;
+}
+
+int max_3(double x, double y, double z)
+{
+    int max_of_three = max(x, max(y, z));
+    return max_of_three;
+}
+
+double line_equation(int x0,int y0, int x1,int y1,int x,int y){
+
+	return (double)(x*(y0-y1) + y*(x1-x0) + x0*y1 - y0*x1);
+}
+
 // ----------------------------------- OWN HELPERS END----------------------------------------------

@@ -375,7 +375,7 @@ void Scene::midpoint_algorithm(Vec3 v0, Vec3 v1)
 	}
 }
 
-bool Scene::is_visible(double den, double num, double &te, double &tl)
+bool is_visible(double den, double num, double &te, double &tl)
 {
 	double t;
 	if (den > 0)
@@ -403,7 +403,6 @@ bool Scene::is_visible(double den, double num, double &te, double &tl)
 
 void Scene::line_rasterization(Vec3 v0, Vec3 v1, Camera *camera)
 {
-	// std::cout << "line\n";
 
 	double te = 0;
 	double tl = 1;
@@ -457,7 +456,6 @@ void Scene::triangle_rasterization(Vec3 v1, Vec3 v2, Vec3 v3, Camera *camera)
 	int y_min = min_3(v1.y, v2.y, v3.y);
 	int x_max = max_3(v1.x, v2.x, v3.x);
 	int y_max = max_3(v1.y, v2.y, v3.y);
-	// std::cout << "triangle\n";
 
 	int x0 = v1.x;
 	int y0 = v1.y;
@@ -476,7 +474,6 @@ void Scene::triangle_rasterization(Vec3 v1, Vec3 v2, Vec3 v3, Camera *camera)
 		{
 			if (x < camera->horRes && x >= 0 && y < camera->verRes && y >= 0)
 			{
-
 				double alpha = line_equation(x2, y2, x1, y1, x, y) / line_equation(x2, y2, x1, y1, x0, y0);
 				double beta = line_equation(x0, y0, x2, y2, x, y) / line_equation(x0, y0, x2, y2, x1, y1);
 				double gamma = line_equation(x1, y1, x0, y0, x, y) / line_equation(x1, y1, x0, y0, x2, y2);
@@ -495,8 +492,7 @@ void Scene::triangle_rasterization(Vec3 v1, Vec3 v2, Vec3 v3, Camera *camera)
 
 void Scene::forwardRenderingPipeline(Camera *camera)
 {
-
-	// It is enough to calculate these matrix for every camera not every mesh.
+	// It is enough to calculate these matrix for every camera not every mesh:
 
 	// camera transformation
 	Matrix4 M_cam = camera_transformation(camera);
@@ -504,15 +500,6 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	// viewport transformation
 	double M_vp[3][4];
 	viewport_transformation(camera, M_vp);
-	// for (int i = 0; i < 3; i++)
-	// {
-	// 	for (int j = 0; j < 4; j++)
-	// 	{
-	// 		std::cout
-	// 			<< M_vp[i][j] << ",";
-	// 	}
-	// 	std::cout << "\n";
-	// }
 
 	// projection transformation
 	Matrix4 M_proj;
@@ -526,11 +513,9 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	{
 		M_proj = orthographic_projection(camera);
 	}
+
 	// create viewing transformation matrix without viewport transformation:
 	Matrix4 M_proj_and_cam = multiplyMatrixWithMatrix(M_proj, M_cam);
-	// create final viewing transformation matrix:
-	// double M_view_res[3][4];
-	// multiply3_4MatrixWith4_4Matrix(M_view_res, M_vp, M_view_mid);
 
 	for (int i = 0; i < meshes.size(); i++)
 	{
@@ -538,15 +523,13 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 
 		// calculate modeling transformation matrix for each mesh
 		Matrix4 M_model = modeling_transformation(mesh);
-		// merge modeling transformation with viewing transformation to create result matrix to be applied on vertices of triangles.
-		// double M_result[3][4];
-		// multiply3_4MatrixWith4_4Matrix(M_result, M_view_res, M_model);
 
+		// create matrix for modeling, camera and projection transformation
 		Matrix4 M_proj_cam_model = multiplyMatrixWithMatrix(M_proj_and_cam, M_model);
 
 		for (int j = 0; j < mesh->numberOfTriangles; j++)
 		{
-			// for each vertex of a triangle
+			// each vertex of a triangle
 			Vec4 v1;
 			Vec4 v2;
 			Vec4 v3;
@@ -568,18 +551,10 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 			v3.t = 1.0;
 			v3.colorId = vertices[mesh->triangles[j].vertexIds[2] - 1]->colorId;
 
+			// apply modeling, camera and projection transformation to each vertex:
 			Vec4 v1_transformed = multiplyMatrixWithVec4(M_proj_cam_model, v1);
 			Vec4 v2_transformed = multiplyMatrixWithVec4(M_proj_cam_model, v2);
 			Vec4 v3_transformed = multiplyMatrixWithVec4(M_proj_cam_model, v3);
-
-			// std::cout << "first:\n"
-			// 		  << v1_transformed << "\n";
-
-			// std::cout << "second:\n"
-			// 		  << v2_transformed << "\n";
-
-			// std::cout << "third:\n"
-			// 		  << v3_transformed << "\n";
 
 			if (v1_transformed.t != 0)
 			{
@@ -603,31 +578,14 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				v3_transformed.t = 1;
 			}
 
-			// std::cout << "first:\n"
-			// 		  << v1_transformed << "\n";
-
-			// std::cout << "second:\n"
-			// 		  << v2_transformed << "\n";
-
-			// std::cout << "third:\n"
-			// 		  << v3_transformed << "\n";
-
 			Vec3 v1_transformed_vp;
 			Vec3 v2_transformed_vp;
 			Vec3 v3_transformed_vp;
 
+			// apply viewport transformation to each vertex:
 			multiply_3x4_MatrixWithVec4(v1_transformed_vp, M_vp, v1_transformed);
 			multiply_3x4_MatrixWithVec4(v2_transformed_vp, M_vp, v2_transformed);
 			multiply_3x4_MatrixWithVec4(v3_transformed_vp, M_vp, v3_transformed);
-
-			// std::cout << "first:\n"
-			// 		  << v1_transformed_vp << "\n";
-
-			// std::cout << "second:\n"
-			// 		  << v2_transformed_vp << "\n";
-
-			// std::cout << "third:\n"
-			// 		  << v3_transformed_vp << "\n";
 
 			if (cullingEnabled)
 			{

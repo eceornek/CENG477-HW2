@@ -204,26 +204,6 @@ Vec4 multiplyMatrixWithVec4(Matrix4 m, Vec4 v)
 }
 
 // ----------------------------------- OWN HELPERS START----------------------------------------------
-/*
- * Multiply matrices m1 (3x4) and m2 (4x4) and return the result matrix (3x4).
- */
-void multiply3_4MatrixWith4_4Matrix(double result[3][4], double m1[3][4], Matrix4 m2)
-{
-    double total;
-    for (int i = 0; i < 3; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            total = 0;
-            for (int k = 0; k < 4; k++)
-            {
-                total += m1[i][k] * m2.val[k][j];
-            }
-
-            result[i][j] = total;
-        }
-    }
-}
 
 void multiply_3x4_MatrixWithVec4(Vec3 &result, double m[][4], Vec4 coordinates)
 {
@@ -244,7 +224,7 @@ int max_3(double x, double y, double z)
     return max_of_three;
 }
 
-double line_equation(int x0,int y0, int x1,int y1,int x,int y){
+double line_equation(int x0,int y0, int x1, int y1, int x, int y){
 
 	return (double)(x*(y0-y1) + y*(x1-x0) + x0*y1 - y0*x1);
 }

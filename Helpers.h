@@ -74,10 +74,25 @@ Matrix4 multiplyMatrixWithMatrix(Matrix4 m1, Matrix4 m2);
  */
 Vec4 multiplyMatrixWithVec4(Matrix4 m, Vec4 v);
 
-void multiply_3x4_MatrixWithVec4(Vec3 &result, double m[][4], Vec4 coordinates);
 
+// ----------------------------------- OWN HELPERS START----------------------------------------------
+/*
+ * Multiply matrix m (3x4) with vector v (vec4) and store the result in vector r (vec3).
+ */
+void multiply_3x4_MatrixWithVec4(Vec3 &result, double m[][4], Vec4 coordinates);
+/*
+ * Get minimum of double and convert to int.
+ */
 int min_3(double x, double y, double z);
+/*
+ * Get maximum of double and convert to int.
+ */
 int max_3(double x, double y, double z);
+/*
+ * Line equation function for triangle rasterization.
+ */
 double line_equation(int x0,int y0, int x1,int y1,int x,int y);
+
+// ----------------------------------- OWN HELPERS END------------------------------------------------
 
 #endif
